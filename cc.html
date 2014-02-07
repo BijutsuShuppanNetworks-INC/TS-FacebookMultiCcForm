@@ -1,0 +1,344 @@
+<!doctype html>
+<!--[if IE 7 ]><html lang="ja" class="ie ie7"><![endif]-->
+<!--[if IE 8 ]><html lang="ja" class="ie ie8"><![endif]-->
+<!--[if IE 9 ]><html lang="ja" class="ie9"><![endif]-->
+<!--[if !(IE)]><!-->
+<html lang="ja"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.2.1/pure-min.css">
+  <link rel="stylesheet" href="css/pure-skin-mine.css">
+  <link rel="stylesheet" href="css/custom.css">
+  <link rel="stylesheet" href="css/input.css">
+  <title>入力</title>
+  <meta name="description" content="">
+  <meta name='robots' content='noindex,nofollow'>
+  <!--[if lt IE 9]>
+  <script src="js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+
+<body class="pure-skin-mine">
+<!-- #wrap -->
+<div id="wrap">
+
+  <!-- ヘッダー(.header) -->
+  <div class="header">
+    <div id="horizontal-menu" class="pure-menu pure-menu-open pure-menu-horizontal">
+      <a class="pure-menu-heading">
+      </a>
+    </div>
+  </div>
+  <!-- //ヘッダー(.header) -->
+
+
+
+<!-- ================================================================================ -->
+  <!-- コンテンツエリア(#main) -->
+  <div id="main">
+    <div class="content">
+
+      <h1>Facebookキャッシュ一括削除フォーム</h1>
+      <p>
+        入力エリアにURLを入力して「実行」を選択。<br>
+      </p>
+
+      <form class="pure-form pure-form-aligned">
+        <fieldset>
+
+          <!-- textarea入力 -->
+          <div class="pure-control-group">
+            <h3>URL<span class="text-primary">*</span></h3>
+            <textarea name="url" id="url" rows="20" placeholder="" class="pure-input-2-3" required></textarea>
+            <p>
+              <span class="fs-80">※Chrome,Firefox対応<br />※改行で複数入力可能<br />※最大600件<br />※1件約1秒かかります</span>
+            </p>
+            <p id="error"></p>
+          </div>
+          <!-- //textarea入力 -->
+
+          <div class="pure-controls mt2">
+            <button id="submit" type="submit" class="pure-button pure-button-primary">実行</button>
+          </div>
+
+        </fieldset>
+      </form>
+      
+            <!-- 一覧エリア(#list-area) -->
+      <div id="list-area">
+        <form class="pure-form">
+          <fieldset>
+
+            <!-- 一覧1 -->
+            <table id="list-table" class="pure-table pure-table-bordered">
+              <thead>
+                <tr>
+                  <th id="status" class="size-3" colspan="4">実行待ち</th>
+                </tr>
+              </thead>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>ステータス</th>
+                  <th>URL</th>
+                  <th>レスポンス<br><span class="fs-80">※Facebookが新たに認識した情報です。<br>※反映されていない場合は再度キャッシュを削除してください。</span></th>
+                </tr>
+              </thead>
+
+              <tbody id="result">
+              </tbody>
+            </table>
+            <!-- //一覧1 -->
+
+          </fieldset>
+        </form>
+
+      </div>
+      <!-- //一覧エリア(#list-area) -->
+      
+      
+      
+    </div>
+    <!-- //(.contents) -->
+  </div>
+  <!-- //コンテンツエリア(#main) -->
+
+
+</div>
+<!-- //#wrap -->
+<!-- ================================================================================ -->
+
+
+
+
+
+<!-- フッター(.footer) -->
+<div class="footer">
+  <div id="pagetop">
+    <i class="icon-arrow-up"></i>ページTOPへ
+  </div>
+
+  &copy; BIJUTSU SHUPPAN NETWORKS CO., LTD.
+</div>
+<!-- //フッター(.footer) -->
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
+<script src="js/common.js"></script>
+<script>
+$(function() {
+
+  //セレクター定数設定
+  //入力URL
+  var SELECTER_INPUT_URL = "#url";
+  //エラー表示エリア
+  var SELECTER_ERROR     = "#error";
+  //実行ステータス表示エリア
+  var SELECTER_STATUS    = "#status";
+  //実行結果表示エリア
+  var SELECTER_RESULT    = "#result";
+
+  //実行URL最大件数
+  var URL_LIMIT    = 600;
+
+  var viewCount = 1;
+
+  var urlCount;
+
+
+  $('#submit').click(function(){
+
+    viewCount = 1;
+
+    //入力URL取得
+    var inputUrl = $(SELECTER_INPUT_URL).val();
+	console.log(inputUrl);
+
+	//入力初期化
+	$(SELECTER_INPUT_URL).val("");
+
+	//入力必須
+	if (inputUrl == "") {
+		_output_error('URLを入力してください');
+	    return false;
+	}
+
+	//改行で分割
+	var splitUrls = inputUrl.split("\n");
+	console.log(splitUrls);
+
+    var urls = [];
+
+    //空白、空の行を取り除く
+    $.each( splitUrls, function(){
+
+      //前後の空白を除く
+      url = $.trim(this);
+
+      //空の場合は次の処理へ
+      if (url == "") {
+        return true;
+	  }
+	  
+	  urls.push(url);
+	console.log(urls);
+	});
+
+
+	//100件以内のみ許可
+	urlCount = urls.length;
+    console.log("urlCount :" + urlCount);
+
+	if (urlCount > URL_LIMIT) {
+		_output_error(URL_LIMIT + '件以内にしてください');
+	    return false;
+	}
+
+	//表示初期化
+    _output_reset();
+
+	//実行中表示
+	_output_status_running();
+
+	//TODO コメント
+	var setCount = 0;
+
+	//API通信のループ処理
+    $.each( urls, function(){
+
+	  console.log("count:" + setCount);
+
+      url = this;
+
+	  //Ajax通信設定
+	  _set_ajax_facebook(url, setCount);
+      setCount++;
+
+    });
+
+    return false;
+  });
+
+  //Ajax通信設定
+  function _set_ajax_facebook (url, count) {
+
+	  setTimeout(function(){
+	
+		  //通信処理
+	      $.ajax({
+		      type : 'POST',
+		      url : 'https://graph.facebook.com',
+		      data: {
+				  'scrape' : 'true',
+				  'id' : url,
+			  },
+			  //TODO
+		      success : function(data){
+		          console.log(data);
+		          if (_is_success_response(data) ) {
+					  status = "成功";
+					  result = JSON.stringify(data, null, "	");
+			          _output_result(viewCount, status, url, result.replace(/[\n\r]/g, "<br />"));					
+				  } else {
+					  status = '<p style="color:red;">失敗</p>';
+					  errorMessage = 'ページが存在するか、アクセス制限が掛かっていないか確認してください。';
+			          _output_result(viewCount, status, url, errorMessage);					
+				  }
+		          if (viewCount >= urlCount) {
+                      _output_status_end();
+				  } else {
+       		          viewCount++;
+				  }
+
+		          
+	          },
+		      error : function(data){
+				  status = '<p style="color:red;">失敗</p>';
+		          _output_result(viewCount, status, url, "通信失敗");
+		          if (viewCount >= urlCount) {
+                      _output_status_end();
+				  }
+		          if (viewCount >= urlCount) {
+                      _output_status_end();
+				  } else {
+       		          viewCount++;
+				  }
+			  }
+
+	      });
+
+      }, count * 1000);
+
+  }
+
+  //表示初期化処理
+  function _output_reset () {
+	//エラー表示初期化
+	$(SELECTER_ERROR).html("");
+	//実行ステータス表示初期化
+	$(SELECTER_STATUS).html('実行待ち');
+	//実行結果表示初期化
+	$(SELECTER_RESULT).html("");
+  }
+
+  //実行ステータス実行中表示処理
+  function _output_status_running () {
+	var value = ' > 実行中<i class="icon-forward"></i>';
+	$(SELECTER_STATUS).append(value);
+  }
+
+  //実行結果表示処理
+  function _output_result (no, status, url, message) {
+	var value = '<tr>'
+	            + '<td>' + no + '</td>'
+	            + '<td>' + status + '</td>'
+	            + '<td><a href="' + url + '" target="_blank">' + url + '</a></td>'
+	            + '<td>' + message + '</td>'
+	            +'</tr>';
+	$(SELECTER_RESULT).prepend(value);
+  }
+
+  //実行ステータス終了表示処理
+  function _output_status_end () {
+	//実行ステータス表示初期化
+	//$(SELECTER_STATUS).html("");
+
+	var value = ' > 実行終了';
+	$(SELECTER_STATUS).append(value);
+  }
+
+
+  //エラー出力処理
+  function _output_error (message) {
+	  var value = '<i class="icon-warning fs-80"></i><mark class="fs-80">' + message + '</mark><br />';
+      $(SELECTER_ERROR).append(value);
+  }
+  
+  
+  //成功レスポンスチェック
+  function _is_success_response (data) {
+
+	if (!data["id"]) {
+		return false;
+	}
+
+	if (!data["url"]) {
+		return false;
+	}
+
+	if (!data["type"]) {
+		return false;
+	}
+
+	if (!data["title"]) {
+		return false;
+	}
+	return true;
+
+  }
+  
+});
+</script>
+</body>
+</html>
